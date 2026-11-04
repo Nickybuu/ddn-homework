@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- เว็บครู: เช็คงานและมอบหมายงาน · สร้างจากโค้ด Apps Script รุ่น 38 (ปุ่ม PDF เปิดรายงานในแท็บใหม่) · แก้ได้เฉพาะบรรทัด API_URL -->
+<!-- เว็บครู: เช็คงานและมอบหมายงาน · สร้างจากโค้ด Apps Script รุ่น 39 (ปุ่ม PDF: คอมเปิดแท็บใหม่ · มือถือเปิดเต็มจอ แชร์ได้) · แก้ได้เฉพาะบรรทัด API_URL -->
 <html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ระบบเช็คงานและมอบหมายงาน</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -152,7 +152,7 @@ body.hasbar #toTop{bottom:calc(104px + env(safe-area-inset-bottom))}
   #bar{padding-left:24px;padding-right:24px}
   #toTop{right:24px}
 }
-/* รายงาน PDF (รุ่น 38) */
+/* รายงาน PDF (รุ่น 39: มือถือเปิดเต็มจอในหน้าเดิม) */
 #xpB{flex:none;padding:0 12px;font-weight:600;letter-spacing:.02em}
 #xp{position:fixed;top:0;right:0;bottom:0;left:0;z-index:20;background:rgba(15,18,24,.45);display:flex;align-items:flex-end;justify-content:center}
 #xp .xpc{background:var(--surface);width:100%;max-width:480px;max-height:92vh;overflow:auto;border-radius:12px 12px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom))}
@@ -173,7 +173,10 @@ body.hasbar #toTop{bottom:calc(104px + env(safe-area-inset-bottom))}
 #xpGo{width:100%;min-height:48px}
 #xpH2{margin:8px 0 0;font-size:13px;text-align:center}
 #xp .warn{margin-top:12px}
-#xpLB a{display:flex;align-items:center;justify-content:center;margin-top:8px;min-height:44px;border-radius:var(--r-ctl);background:var(--primary);color:#fff;text-decoration:none;font-weight:600}
+#xpLn button{margin-top:8px;width:100%}
+#xs{position:fixed;top:0;right:0;bottom:0;left:0;z-index:40;background:#e9ebee}
+#xs iframe{display:block;width:100%;height:100%;border:0}
+html.xs-on,html.xs-on body{overflow:hidden}
 </style><style>
 #gwLock{position:fixed;inset:0;z-index:50;background:rgba(15,18,24,.55);display:flex;align-items:center;justify-content:center;padding:16px}
 #gwLock[hidden]{display:none}
@@ -234,11 +237,12 @@ body.hasbar #toTop{bottom:calc(104px + env(safe-area-inset-bottom))}
 <label class="ck" id="xpEl"><input type="checkbox" id="xpE" onchange="xpPrev()"><span>แสดงนักเรียนทุกคน (รวมคนที่ส่งครบแล้ว)</span></label>
 <p id="xpN"></p>
 <button class="p" id="xpGo" onclick="xpGo()">เปิดรายงาน</button>
-<p id="xpH2" class="muted">เปิดในแท็บใหม่ทันที แล้วกด ดาวน์โหลด PDF หรือ พิมพ์ จากหน้านั้น</p>
-<div id="xpLB" class="warn" hidden>เบราว์เซอร์ไม่ให้เปิดแท็บใหม่เอง แตะปุ่มนี้เพื่อเปิดรายงาน<a id="xpL" target="_blank" rel="noopener">เปิดรายงาน</a></div>
+<p id="xpH2" class="muted"></p>
+<div id="xpLn" class="warn" hidden>เปิดจากแอป LINE: ดูรายงานได้ แต่การแชร์หรือดาวน์โหลดไฟล์อาจใช้ไม่ได้ แนะนำเปิดหน้านี้ใน Safari (หรือแตะ ⋮ แล้วเลือกเปิดในเบราว์เซอร์)<button id="xpLnB" onclick="xpOpenExt()">เปิดใน Safari</button></div>
 <div id="xpD" class="warn" hidden>มีการแก้ในหน้านี้ที่ยังไม่ได้บันทึก รายงานจะยังไม่รวมการแก้นี้ · กดบันทึกก่อนถ้าต้องการให้รวม</div>
 <div id="xpErr" class="warn" hidden></div>
 </div></div>
+<div id="xs" hidden><iframe id="xsf" title="รายงาน PDF"></iframe></div>
 <div id="toast" role="status" hidden></div>
 <div id="bar" hidden><div id="seg" aria-hidden="true"></div><div class="in"><div id="sum"></div><button id="saveB" class="p" onclick="doSave()">บันทึก</button></div></div>
 <script>
@@ -777,7 +781,7 @@ function saveAssign(){
     }).withFailureHandler(failSave).tcSaveDetail({tab:tab,targets:targets,name:$('nmI').value,desc:$('ds').value,imgs:S.items.map(function(i){return i.id;})});
   });
 }
-/* ---------- รายงาน PDF (รุ่น 38): สร้างบนหน้าเว็บจากข้อมูลที่โหลดไว้ เปิดในแท็บใหม่ทันที ---------- */
+/* ---------- รายงาน PDF (รุ่น 39): สร้างบนหน้าเว็บจากข้อมูลที่โหลดไว้ · คอม = แท็บใหม่ · มือถือ/แอป LINE = เต็มจอในหน้าเดิม ---------- */
 var XP={kind:'owe',seq:0,loading:false};
 try{var xs0=JSON.parse(localStorage.getItem('tc_xp')||'{}');if(xs0.kind==='abs')XP.kind='abs';}catch(e){}
 var XP_SCHOOL='โรงเรียนดัดดรุณี',XP_TEACHER='ครูธนา หมื่นจำนงค์',XP_TERM='ภาคเรียนที่ 2 ปีการศึกษา 2569',XP_STALE=60000;
@@ -804,7 +808,9 @@ function openXp(){
   var ms=xpMonths(),f=$('xpF'),to=$('xpTo'),fv=f.value,tv=to.value;
   xpFill(f,ms,fv);if(!f.value)f.value=ms[0];
   xpFill(to,ms,tv);if(!to.value)to.value=ms[ms.length-1];
-  $('xpD').hidden=!S.dirty;$('xpErr').hidden=true;$('xpLB').hidden=true;
+  $('xpD').hidden=!S.dirty;$('xpErr').hidden=true;
+  $('xpH2').textContent=xpMobile()?'เปิดรายงานเต็มจอ แล้วกด แชร์ PDF เพื่อส่งเข้า LINE บันทึกไฟล์ หรือพิมพ์':'เปิดในแท็บใหม่ทันที แล้วกด ดาวน์โหลด PDF หรือ พิมพ์ จากหน้านั้น';
+  $('xpLn').hidden=!xpLine();$('xpLnB').hidden=!xpExtUrl();
   xpKind(XP.kind);
   $('xp').hidden=false;
   xpFresh();
@@ -875,8 +881,25 @@ function xpPrev(){
   var w=XP.kind==='owe'?'ค้างส่ง':'ลา/ขาด',u=XP.kind==='owe'?'งาน':'ครั้ง';
   $('xpN').textContent=(list.length>1?list.length+' ห้อง · ':'')+w+' '+n+' คน จาก '+tot+' คน (รวม '+sum+' '+u+')'
     +' · เดือน '+(rg[0]===rg[1]?ymLab(rg[0]):ymLab(rg[0])+' – '+ymLab(rg[1]))+' · นับถึงวันนี้ '+isoLab(xpToday());
-  $('xpLB').hidden=true;
 }
+// มือถือ แท็บเล็ต และเบราว์เซอร์ในแอป (LINE) เปิดแท็บใหม่แบบเขียนเนื้อหาเองไม่ได้ (ได้หน้าว่าง) → เปิดเต็มจอในหน้าเดิม
+function xpMobile(){var u=navigator.userAgent||'';return /iPhone|iPad|iPod|Android|Mobi|\bLine\//i.test(u)||(/Macintosh/.test(u)&&navigator.maxTouchPoints>1);}
+function xpLine(){return /\bLine\//i.test(navigator.userAgent||'');}
+// ลิงก์หน้านี้ + openExternalBrowser=1 (แอป LINE จะเปิดลิงก์แบบนี้ใน Safari/เบราว์เซอร์หลัก) · หน้าใน Apps Script อ่านลิงก์ไม่ได้ → ''
+function xpExtUrl(){
+  try{var h=String(window.top.location.href);if(!/^https?:/.test(h))return '';if(/[?&]openExternalBrowser=1/.test(h))return h;
+    var i=h.indexOf('#'),b=i<0?h:h.slice(0,i),hs=i<0?'':h.slice(i);return b+(b.indexOf('?')<0?'?':'&')+'openExternalBrowser=1'+hs;}
+  catch(e){return '';}
+}
+function xpOpenExt(){var u=xpExtUrl();if(u)window.top.location.href=u;}
+function xpSheet(html){
+  var s=$('xs'),f=$('xsf');s.hidden=false;document.documentElement.className+=' xs-on';
+  var d=f.contentWindow.document;d.open();d.write(html);d.close();
+}
+window.xpCloseSheet=function(){
+  $('xs').hidden=true;document.documentElement.className=document.documentElement.className.replace(/\s*xs-on/g,'');
+  try{var d=$('xsf').contentWindow.document;d.open();d.write('');d.close();}catch(e){}
+};
 // รายงาน 1 ห้อง → ข้อมูลสำหรับวาดหน้า (หัวกระดาษ ตาราง หมายเหตุ)
 function xpRoom(m,range,asOf){
   var K=XK[m.kind],k=m.label.split(' '),cls=k[0].replace(/^ม\./,''),code=k.slice(1).join(' ');
@@ -913,7 +936,11 @@ var XP_DOC_CSS="@page{size:A4;margin:12mm 14mm}"
 +".bar .t{flex:1 1 220px;min-width:0;font-weight:600;font-size:15px;line-height:1.35;overflow-wrap:anywhere}.bar .t small{display:block;font-weight:400;font-size:13px;color:#5a6270}"
 +".bar button{font:600 15px/1.2 'Sarabun',sans-serif;min-height:44px;padding:0 16px;border-radius:8px;border:1px solid #cbd1d9;background:#fff;color:#0f1218;cursor:pointer}"
 +".bar button.p{background:#141414;border-color:#141414;color:#fff}.bar button:disabled{opacity:.55;cursor:progress}"
-+"#st{flex-basis:100%;font-size:13px;color:#b42318}#st:empty{display:none}"
++".bar .acts{display:flex;gap:8px}.m .bar .acts{flex-basis:100%}.m .bar .acts button{flex:1 1 0;padding:0 10px}"
++"#bk{flex:none;padding:0 12px}"
++"#st{flex-basis:100%;font-size:13px;line-height:1.45;color:#b42318}#st.i{color:#5a6270}#st:empty{display:none}"
++"#ln{flex-basis:100%;display:flex;align-items:center;gap:8px;font-size:13px;line-height:1.45;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px}"
++"#ln button{flex:none;min-height:36px;font-size:13px;padding:0 10px}"
 +"#msg{padding:40px 16px;text-align:center;color:#5a6270}"
 +"#sheets{display:flex;flex-direction:column;align-items:center;gap:16px;padding:16px 0 48px}"
 +".pw{position:relative;overflow:hidden;flex:none}"
@@ -931,8 +958,7 @@ var XP_DOC_CSS="@page{size:A4;margin:12mm 14mm}"
 +"td.c{text-align:center}td.b{font-weight:700}td.big{font-size:16px}td.r{color:#b42318;font-weight:700}td.g{color:#6b7280}"
 +".note{font-size:13px;color:#4b5563;line-height:1.5;margin-top:8px}"
 +".empty{font-size:21px;font-weight:700;text-align:center;margin-top:40px;color:#1f6b3a}.empty.g{color:#4b5563}"
-+"#busy{position:fixed;top:0;right:0;bottom:0;left:0;z-index:5;background:rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:600}"
-+"@media print{body{background:#fff}.bar,#busy,#msg{display:none!important}#sheets{display:block;padding:0}"
++"@media print{body{background:#fff}.bar,#msg{display:none!important}#sheets{display:block;padding:0}"
 +".pw{width:auto!important;height:auto!important;overflow:visible;break-after:page;page-break-after:always}.pw:last-child{break-after:auto;page-break-after:auto}"
 +".page{width:auto;height:auto;padding:0;box-shadow:none;transform:none!important}.pb{height:auto;overflow:visible}.pf{position:static;margin-top:4px}}"
 +".cap .page{transform:none!important}.cap .pw{width:auto!important;height:auto!important}";
@@ -943,7 +969,8 @@ function XP_RUNTIME(){
     ['https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js','https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js']];
   function $(i){return document.getElementById(i);}
   function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;}
-  var sheets=$('sheets'),pages=[],making=false;
+  var sheets=$('sheets'),pages=[],gen=0,making=false,again=false;
+  if(RP.mobile)document.body.className='m';
   function newPage(){var w=el('div','pw'),p=el('div','page'),b=el('div','pb'),f=el('div','pf');p.appendChild(b);p.appendChild(f);w.appendChild(p);sheets.appendChild(w);var o={w:w,p:p,b:b,f:f};pages.push(o);return o;}
   function over(b){return b.scrollHeight>b.clientHeight+1;}
   function table(R){
@@ -1004,15 +1031,19 @@ function XP_RUNTIME(){
     pages.forEach(function(x){x.w.style.width=Math.floor(794*s)+'px';x.w.style.height=Math.floor(1122*s)+'px';x.p.style.transform=s<1?'scale('+s+')':'';});
   }
   function render(){
+    if(making){again=true;return;}            // กำลังสร้างไฟล์ → จัดหน้าใหม่หลังสร้างเสร็จ
+    gen++;blob=null;
     sheets.innerHTML='';pages=[];sheets.className='cap';
     RP.rooms.forEach(room);
     sheets.className='';fit();$('msg').hidden=true;
     $('np').textContent=pages.length+' หน้า';
+    btns();
+    var my=gen;setTimeout(function(){if(my===gen)makePdf().catch(function(){});},300);   // เตรียมไฟล์ไว้ก่อน กดแล้วได้ทันที
   }
   var started=false;
-  function start(){if(started)return;started=true;render();setTimeout(function(){libs().catch(function(){});},400);}
+  function start(){if(started)return;started=true;render();}
   window.addEventListener('resize',function(){if(started)fit();});
-  if(document.fonts){try{document.fonts.addEventListener('loadingdone',function(){if(started&&!making)render();});}catch(e){}}
+  if(document.fonts){try{document.fonts.addEventListener('loadingdone',function(){if(started)render();});}catch(e){}}
   // ฟอนต์ Sarabun: โหลดแบบไม่บังสคริปต์ (เน็ตช้าก็ยังจัดหน้าได้ด้วยฟอนต์สำรอง แล้วจัดใหม่เมื่อฟอนต์มา)
   var fl=document.createElement('link');fl.rel='stylesheet';
   fl.href='https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap';
@@ -1036,38 +1067,79 @@ function XP_RUNTIME(){
       libP.catch(function(){libP=null;});}
     return libP;
   }
-  $('pr').onclick=function(){window.print();};
-  $('dl').onclick=function(){
-    var b=$('dl');if(b.disabled||!started)return;
-    b.disabled=true;making=true;b.textContent='กำลังสร้าง PDF...';$('busy').hidden=false;$('st').textContent='';
-    function end(err){b.disabled=false;making=false;b.textContent='ดาวน์โหลด PDF';$('busy').hidden=true;
-      if(err)$('st').textContent='สร้างไฟล์ไม่สำเร็จ (ตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง) · หรือกด พิมพ์ แล้วเลือก บันทึกเป็น PDF';}
-    var guard=new Promise(function(ok,bad){setTimeout(function(){bad(new Error('timeout'));},45000);});   // เน็ตค้าง: ไม่รอเกิน 45 วินาที
-    Promise.race([guard,libs().then(function(){
+  // ไฟล์ PDF: วาดทีละหน้าเป็นภาพ (ตัวอักษรไทยถูกต้องเหมือนบนจอ) รวมเป็น A4 · ทำครั้งเดียวแล้วเก็บไว้
+  var pdfP=null,blob=null;
+  function makePdf(){
+    if(blob)return Promise.resolve(blob);
+    if(pdfP)return pdfP;
+    var my=gen,list=pages.slice();making=true;btns();
+    var guard=new Promise(function(ok,bad){setTimeout(function(){bad(new Error('timeout'));},60000);});   // เน็ตค้าง: ไม่รอเกิน 1 นาที
+    pdfP=Promise.race([guard,libs().then(function(){
       var pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true}),i=0;
       function next(){
-        if(i>=pages.length){pdf.save(RP.file);return;}
-        return window.html2canvas(pages[i].p,{scale:2,backgroundColor:'#ffffff',logging:false,windowWidth:1000,
+        if(i>=list.length)return pdf.output('blob');
+        return window.html2canvas(list[i].p,{scale:2,backgroundColor:'#ffffff',logging:false,windowWidth:1000,
           onclone:function(d){d.getElementById('sheets').className='cap';}})
-          .then(function(cv){if(i)pdf.addPage();pdf.addImage(cv.toDataURL('image/jpeg',0.82),'JPEG',0,0,210,297);i++;return next();});
+          .then(function(cv){if(i)pdf.addPage();pdf.addImage(cv.toDataURL('image/jpeg',0.82),'JPEG',0,0,210,297);cv.width=cv.height=0;i++;return next();});
       }
       return next();
-    })]).then(function(){end();},function(e){end(e||1);});
+    })]).then(function(b){
+      making=false;pdfP=null;if(my===gen)blob=b;st('');btns();if(again){again=false;render();}return b;
+    },function(e){
+      making=false;pdfP=null;btns();if(again){again=false;render();}
+      st('สร้างไฟล์ PDF ไม่สำเร็จ (ตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง)'+(RP.mobile?'':' · หรือกด พิมพ์ แล้วเลือก บันทึกเป็น PDF'));throw e;
+    });
+    return pdfP;
+  }
+  function st(t,info){var e=$('st');e.textContent=t||'';e.className=info?'i':'';}
+  // แชร์ไฟล์ (มือถือ): ใช้แผงแชร์ของเครื่อง → ส่งเข้า LINE · บันทึกลงไฟล์ · พิมพ์
+  function nav(){try{if(window.parent!==window&&window.parent.navigator&&window.parent.navigator.share)return window.parent.navigator;}catch(e){}return navigator;}
+  var CAN=RP.mobile&&(function(){try{var n=nav();return !!(n.share&&n.canShare&&n.canShare({files:[new File([new Blob(['%PDF-1.4'],{type:'application/pdf'})],'t.pdf',{type:'application/pdf'})]}));}catch(e){return false;}})();
+  function btns(){
+    var sh=$('sh'),dl=$('dl');
+    if(sh){sh.hidden=!CAN;sh.disabled=!blob;sh.textContent=blob?'แชร์ PDF':'กำลังเตรียม PDF...';}
+    if(dl){dl.className=CAN?'':'p';if(!dl.disabled)dl.textContent='ดาวน์โหลด PDF';}
+  }
+  function save(x){
+    var u=URL.createObjectURL(x),a=el('a');a.href=u;a.download=RP.file;a.rel='noopener';document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(u);if(a.parentNode)a.parentNode.removeChild(a);},60000);
+  }
+  if($('sh'))$('sh').onclick=function(){
+    if(!blob){makePdf().catch(function(){});return;}
+    var f=new File([blob],RP.file,{type:'application/pdf'});
+    nav().share({files:[f]}).catch(function(e){
+      if(e&&e.name==='AbortError')return;                  // ปิดแผงแชร์เอง
+      save(blob);st('แชร์จากหน้านี้ไม่ได้ จึงดาวน์โหลดไฟล์แทน',true);
+    });
   };
+  $('dl').onclick=function(){
+    if(blob){save(blob);return;}
+    var b=$('dl');b.disabled=true;b.textContent='กำลังสร้าง PDF...';
+    makePdf().then(function(x){b.disabled=false;btns();save(x);},function(){b.disabled=false;btns();});
+  };
+  if($('pr'))$('pr').onclick=function(){window.print();};
+  if($('bk'))$('bk').onclick=function(){try{window.parent.xpCloseSheet();}catch(e){history.back();}};
+  if($('lnB'))$('lnB').onclick=function(){try{window.parent.xpOpenExt();}catch(e){}};
+  btns();
 }
 function xpEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function xpDoc(ms,rg,tab){
+function xpDoc(ms,rg,tab,mode){
   var K=XK[ms[0].kind],range=rg[0]===rg[1]?ymLab(rg[0]):ymLab(rg[0])+' – '+ymLab(rg[1]),asOf=isoLab(xpToday());
   var name=K.file+' '+(tab==='*'?'ทุกห้อง':ms[0].label.replace(/\//g,'-'))+' '+range.replace(' – ','–')+' (ณ '+asOf+')';
   var lg=document.querySelector('.top .logo');
-  var RP={file:name+'.pdf',logo:lg?lg.src:'',rooms:ms.map(function(m){return xpRoom(m,range,asOf);})};
+  var mob=mode==='sheet'&&xpMobile(),line=xpLine();
+  var RP={file:name+'.pdf',logo:lg?lg.src:'',mode:mode,mobile:mob,rooms:ms.map(function(m){return xpRoom(m,range,asOf);})};
   var sub=(tab==='*'?ms.length+' ห้อง · ':'')+'เดือน '+range+' · ข้อมูล ณ '+asOf;
   return '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
     +'<title>'+xpEsc(name)+'</title>'
     +'<style>'+XP_DOC_CSS+'</style></head><body>'
-    +'<div class="bar"><div class="t">'+xpEsc(K.title)+'<small>'+xpEsc(sub)+' · <span id="np"></span></small></div>'
-    +'<button class="p" id="dl">ดาวน์โหลด PDF</button><button id="pr">พิมพ์</button><div id="st"></div></div>'
-    +'<div id="msg">กำลังจัดหน้า...</div><div id="sheets"></div><div id="busy" hidden>กำลังสร้างไฟล์ PDF...</div>'
+    +'<div class="bar">'+(mode==='sheet'?'<button id="bk" aria-label="กลับไปหน้าเช็คงาน">‹ กลับ</button>':'')
+    +'<div class="t">'+xpEsc(K.title)+'<small>'+xpEsc(sub)+' · <span id="np"></span></small></div>'
+    +'<div class="acts">'+(mob?'<button class="p" id="sh" hidden disabled>กำลังเตรียม PDF...</button>':'')
+    +'<button class="p" id="dl">ดาวน์โหลด PDF</button>'+(mob?'':'<button id="pr">พิมพ์</button>')+'</div>'
+    +(line&&mode==='sheet'?'<div id="ln">อยู่ในแอป LINE · ถ้าแชร์หรือดาวน์โหลดไม่ได้ ให้เปิดใน Safari'+(xpExtUrl()?'<button id="lnB">เปิดใน Safari</button>':' (แตะ ⋮ แล้วเลือกเปิดในเบราว์เซอร์)')+'</div>':'')
+    +'<div id="st"></div></div>'
+    +'<div id="msg">กำลังจัดหน้า...</div><div id="sheets"></div>'
     +'<script>window.RP='+JSON.stringify(RP).replace(/</g,'\\u003c')+';<\/script>'
     +'<script>('+XP_RUNTIME.toString()+')();<\/script></body></html>';
 }
@@ -1077,12 +1149,13 @@ function xpGo(){
   var ms=list.filter(function(k){return S.cache[k];}).map(function(k){return xpModel(S.cache[k],XP.kind,rg[0],rg[1],ev);});
   if(!ms.length)return;
   try{localStorage.setItem('tc_xp',JSON.stringify({kind:XP.kind}));}catch(e){}
-  var html=xpDoc(ms,rg,tab),w=null;
-  $('xpLB').hidden=true;
-  try{w=window.open('','_blank');}catch(e){w=null;}
-  if(w){try{w.document.open();w.document.write(html);w.document.close();return;}catch(e){try{w.close();}catch(e2){}}}
-  // เปิดแท็บใหม่เองไม่ได้ (ถูกบล็อก) → ให้แตะลิงก์แทน
-  try{var a=$('xpL');if(a.href&&a.href.indexOf('blob:')===0)URL.revokeObjectURL(a.href);a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));$('xpLB').hidden=false;}
+  $('xpErr').hidden=true;
+  if(!xpMobile()){   // คอม: แท็บใหม่
+    var w=null;try{w=window.open('','_blank');}catch(e){w=null;}
+    if(w){try{w.document.open();w.document.write(xpDoc(ms,rg,tab,'tab'));w.document.close();if(w.document.getElementById('sheets'))return;}catch(e){}try{w.close();}catch(e2){}}
+  }
+  // มือถือ / แอป LINE / เปิดแท็บใหม่ไม่ได้ → เต็มจอในหน้าเดิม
+  try{xpSheet(xpDoc(ms,rg,tab,'sheet'));}
   catch(e){$('xpErr').textContent='เปิดรายงานไม่ได้: '+(e&&e.message||e);$('xpErr').hidden=false;}
 }
 init();
