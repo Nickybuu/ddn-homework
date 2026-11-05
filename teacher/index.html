@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- เว็บครู: เช็คงานและมอบหมายงาน · สร้างจากโค้ด Apps Script รุ่น 39 (ปุ่ม PDF: คอมเปิดแท็บใหม่ · มือถือเปิดเต็มจอ แชร์ได้) · แก้ได้เฉพาะบรรทัด API_URL -->
+<!-- เว็บครู: เช็คงานและมอบหมายงาน · สร้างจากโค้ด Apps Script รุ่น 40 (เปิดทันทีจากข้อมูลที่เก็บไว้ในเครื่อง · ปุ่ม PDF) · แก้ได้เฉพาะบรรทัด API_URL -->
 <html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="apple-touch-icon" href="../icon.png"><link rel="icon" type="image/png" href="../icon.png"><meta name="apple-mobile-web-app-title" content="เช็คงาน">
 <title>ระบบเช็คงานและมอบหมายงาน</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -177,8 +177,10 @@ body.hasbar #toTop{bottom:calc(104px + env(safe-area-inset-bottom))}
 #xs{position:fixed;top:0;right:0;bottom:0;left:0;z-index:40;background:#e9ebee}
 #xs iframe{display:block;width:100%;height:100%;border:0}
 html.xs-on,html.xs-on body{overflow:hidden}
+/* รุ่น 40: ป้ายข้อมูลที่เก็บไว้ในเครื่อง ระหว่างรออัปเดต */
+#upd.old{color:#92400e}
 </style><style>
-#gwLock{position:fixed;inset:0;z-index:50;background:rgba(15,18,24,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+#gwLock{position:fixed;inset:0;z-index:50;background:#f2f4f7;display:flex;align-items:center;justify-content:center;padding:16px}
 #gwLock[hidden]{display:none}
 #gwLock .gw-card{width:100%;max-width:400px;background:#fff;border-radius:12px;padding:24px;font-family:'Sarabun','Noto Sans Thai',system-ui,sans-serif;color:#0f1218}
 #gwLock h2{margin:0 0 6px;font-size:20px;font-weight:600;line-height:1.4}
@@ -331,7 +333,8 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbywFJRl1KwVs26qY_opmhuln7
 
 <script>
 var S={tabs:[],cache:{},tab:null,mode:'check',today:'',all:false,sel:null,multi:{},data:null,states:[],items:[],
-  dirty:false,detDirty:false,ver:0,pick:false,pend:null,busy:false,saveSeq:0,lastFetch:{},booted:false};
+  dirty:false,detDirty:false,ver:0,pick:false,pend:null,busy:false,saveSeq:0,lastFetch:{},booted:false,
+  stale:false,bootLoading:false,onBoot:[],at:0};
 var TC_BACK=3,TC_FWD=14;
 function $(i){return document.getElementById(i);}
 function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;}
@@ -351,18 +354,57 @@ function addDays(iso,n){var p=iso.split('-');var d=new Date(+p[0],+p[1]-1,+p[2]+
 function cur(){return S.cache[S.tab];}
 function sIdx(t,col){for(var j=0;j<t.sessions.length;j++)if(t.sessions[j].col===col)return j;return -1;}
 
-/* ---------- โหลดข้อมูล: ครั้งเดียวตอนเปิด แล้วอัปเดตเบื้องหลัง ---------- */
+/* ---------- โหลดข้อมูล (รุ่น 40): เปิดทันทีจากข้อมูลที่เก็บไว้ในเครื่อง แล้วอัปเดตจากชีตเบื้องหลัง ---------- */
+var TC_KEY='tc_boot_v1',TC_KEEP=21*864e5,tcPT=null;
+// วันนี้ตามเวลาไทย (ข้อมูลที่เก็บไว้อาจเป็นของเมื่อวาน)
+function tcToday(d){try{var t=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'});if(/^\d{4}-\d{2}-\d{2}$/.test(t)&&t>d)return t;}catch(e){}return d;}
+function tcStamp(ms){var d=new Date(ms),n=new Date(),z=function(k){return (k<10?'0':'')+k;};
+  return (d.toDateString()===n.toDateString()?'':d.getDate()+' '+['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][d.getMonth()]+' ')+z(d.getHours())+':'+z(d.getMinutes());}
+function tcFlush(){
+  clearTimeout(tcPT);tcPT=null;if(!S.booted||!S.at)return;
+  try{localStorage.setItem(TC_KEY,JSON.stringify({v:1,at:S.at,today:S.today,tabs:S.tabs.map(function(t){return S.cache[t.tab];})}));}
+  catch(e){try{localStorage.removeItem(TC_KEY);}catch(e2){}}
+}
+function tcPersist(){clearTimeout(tcPT);tcPT=setTimeout(tcFlush,800);}
+function tcForget(){try{localStorage.removeItem(TC_KEY);}catch(e){}}
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden'&&tcPT)tcFlush();});
+window.addEventListener('pagehide',function(){if(tcPT)tcFlush();});
 function init(){
-  $('sess').innerHTML='';$('sess').appendChild(el('div','load','กำลังโหลดข้อมูลทุกห้อง...'));
-  $('more').hidden=true;
-  google.script.run.withSuccessHandler(boot).withFailureHandler(function(e){
+  var c=null;
+  try{c=JSON.parse(localStorage.getItem(TC_KEY)||'null');}catch(e){c=null;}
+  if(c&&c.v===1&&c.at&&Date.now()-c.at<TC_KEEP&&c.tabs&&c.tabs.length&&c.tabs.every(function(t){return t&&t.tab&&t.sessions&&t.students&&t.st;})){
+    boot({today:c.today,tabs:c.tabs},c.at);   // แสดงทันที (ข้อมูลรอบก่อน)
+  }else{
+    $('sess').innerHTML='';$('sess').appendChild(el('div','load','กำลังโหลดข้อมูลทุกห้อง...'));
+    $('more').hidden=true;
+  }
+  S.bootLoading=true;
+  google.script.run.withSuccessHandler(fresh).withFailureHandler(function(e){
+    S.bootLoading=false;tcBootDone(false);
+    if(S.booted){$('upd').textContent='อัปเดตข้อมูลไม่สำเร็จ · แสดงข้อมูลที่เก็บไว้ ณ '+tcStamp(S.at)+' · กด ↻ เพื่อลองใหม่';$('upd').className='muted old';return;}
     $('sess').innerHTML='';$('sess').appendChild(el('div','load','โหลดข้อมูลไม่สำเร็จ: '+(e&&e.message||e)));
     var b=el('button',null,'ลองใหม่');b.onclick=init;$('sess').appendChild(b);
   }).tcBoot();
 }
-function boot(r){
-  S.today=r.today;S.booted=true;
-  r.tabs.forEach(function(t){S.cache[t.tab]=t;S.lastFetch[t.tab]=Date.now();});
+function tcBootDone(ok){var f=S.onBoot;S.onBoot=[];f.forEach(function(x){try{x(ok);}catch(e){}});}
+// ข้อมูลล่าสุดจากชีตมาถึง
+function fresh(r){
+  S.bootLoading=false;
+  var same=S.booted&&S.tabs.length===r.tabs.length&&r.tabs.every(function(t,i){return S.tabs[i].tab===t.tab&&S.tabs[i].label===t.label;});
+  if(!S.booted||(!same&&!S.dirty&&!S.busy)){boot(r);tcBootDone(true);return;}
+  S.today=r.today;
+  var seq=S.saveSeq,now=Date.now();
+  r.tabs.forEach(function(t){
+    if(!S.cache[t.tab])return;
+    if(seq!==S.saveSeq||S.busy)return;   // บันทึกอยู่: ข้อมูลชุดนี้อาจเก่ากว่าที่เพิ่งบันทึก
+    applyFresh(t);S.lastFetch[t.tab]=now;
+  });
+  S.stale=false;S.at=now;$('upd').textContent='ข้อมูล ณ '+hm();$('upd').className='muted';
+  tcPersist();tcBootDone(true);
+}
+function boot(r,cachedAt){
+  S.today=cachedAt?tcToday(r.today):r.today;S.booted=true;
+  r.tabs.forEach(function(t){S.cache[t.tab]=t;S.lastFetch[t.tab]=cachedAt?0:Date.now();});
   S.tabs=r.tabs.map(function(t){return {tab:t.tab,label:t.label};});
   var c=$('chips'),anyT=false;c.innerHTML='';
   S.tabs.forEach(function(t){var b=el('button');var k=t.label.split(' ');b.appendChild(el('b',null,k[0]));b.appendChild(el('small',null,k.slice(1).join(' ')));var hasT=S.cache[t.tab].sessions.some(function(s){return s.date===S.today&&!s.noWork;});if(hasT){b.setAttribute('data-today','1');anyT=true;}b.title=t.label+(hasT?' · มีคาบวันนี้':'');b.id='tab_'+t.tab;b.onclick=function(){guard(function(){pickTab(t.tab);});};c.appendChild(b);});
@@ -372,7 +414,9 @@ function boot(r){
     var td=S.tabs.filter(function(t){return S.cache[t.tab].sessions.some(function(s){return s.date===S.today&&!s.noWork;});})[0];
     want=td?td.tab:(S.tabs[0]&&S.tabs[0].tab);
   }
-  $('upd').textContent='ข้อมูล ณ '+hm();
+  S.stale=!!cachedAt;S.at=cachedAt||Date.now();
+  if(cachedAt){$('upd').textContent='กำลังอัปเดตข้อมูล... (แสดงข้อมูลที่เก็บไว้ ณ '+tcStamp(cachedAt)+')';$('upd').className='muted old';}
+  else{$('upd').textContent='ข้อมูล ณ '+hm();$('upd').className='muted';tcPersist();}
   if(want)pickTab(want,true);
 }
 function refreshTab(tab,quiet){
@@ -380,16 +424,16 @@ function refreshTab(tab,quiet){
   if(!quiet)$('upd').textContent='กำลังอัปเดตข้อมูล...';
   google.script.run.withSuccessHandler(function(t){
     if(seq!==S.saveSeq||S.busy){$('upd').textContent='ข้อมูล ณ '+hm();return;}   // มีการบันทึกระหว่างนั้น: ข้อมูลชุดนี้อาจเก่ากว่า ใช้ของที่บันทึกแทน
-    applyFresh(t);$('upd').textContent='ข้อมูล ณ '+hm();
+    applyFresh(t);if(!S.stale){$('upd').textContent='ข้อมูล ณ '+hm();$('upd').className='muted';}
   }).withFailureHandler(function(){$('upd').textContent='อัปเดตข้อมูลไม่สำเร็จ (ใช้ข้อมูลเดิมอยู่) · กด ↻ เพื่อลองใหม่';}).tcTab(tab);
   S.lastFetch[tab]=Date.now();
 }
-function manualRefresh(){if(S.tab)refreshTab(S.tab,false);}
+function manualRefresh(){if(S.bootLoading){toast('กำลังโหลดข้อมูลล่าสุดอยู่ สักครู่');return;}if(S.tab)refreshTab(S.tab,false);}
 document.addEventListener('visibilitychange',function(){
   if(document.visibilityState==='visible'&&S.tab&&Date.now()-(S.lastFetch[S.tab]||0)>60000)refreshTab(S.tab,true);
 });
 function applyFresh(t){
-  S.cache[t.tab]=t;
+  S.cache[t.tab]=t;tcPersist();
   if(t.tab!==S.tab)return;
   if(S.mode==='check'&&S.sel){
     var j=-1;t.sessions.forEach(function(s,k){if(s.col===S.sel.col&&s.date===S.sel.date&&s.p===S.sel.p)j=k;});
@@ -406,7 +450,7 @@ function pickTab(tab,fresh){
   try{localStorage.setItem('tc_tab',tab);}catch(e){}
   S.tabs.forEach(function(t){var cb=$('tab_'+t.tab);cb.className=t.tab===tab?'on':'';cb.setAttribute('aria-pressed',t.tab===tab?'true':'false');});
   renderAll();
-  if(!fresh&&Date.now()-(S.lastFetch[tab]||0)>15000)refreshTab(tab,true);
+  if(!fresh&&!S.bootLoading&&Date.now()-(S.lastFetch[tab]||0)>15000)refreshTab(tab,true);
 }
 function resetWork(){S.items=[];$('nmI').value='';$('ds').value='';renderThumbs();}
 function isWide(){return !!(window.matchMedia&&window.matchMedia('(min-width:960px)').matches);}
@@ -828,8 +872,14 @@ function xpRange(){var f=$('xpF').value,t=$('xpTo').value;return f>t?[t,f]:[f,t]
 function xpReady(on){var b=$('xpGo');b.disabled=!on;b.textContent=on?'เปิดรายงาน':'กำลังโหลดข้อมูลล่าสุด...';}
 // โหลดข้อมูลล่าสุดของห้องที่เลือกไว้ก่อน (ถ้าเกิน 1 นาที) เพื่อให้ตอนกดเปิดรายงานใช้เวลาไม่ถึงวินาที
 function xpFresh(){
-  var stale=xpList().filter(function(k){return Date.now()-(S.lastFetch[k]||0)>XP_STALE;});
   var my=++XP.seq;
+  if(S.bootLoading){
+    XP.loading=true;xpReady(false);$('xpErr').hidden=true;
+    S.onBoot.push(function(ok){if(my!==XP.seq)return;if(ok){xpFresh();return;}
+      XP.loading=false;xpReady(true);xpPrev();$('xpErr').textContent='โหลดข้อมูลล่าสุดไม่สำเร็จ รายงานจะใช้ข้อมูลที่เก็บไว้ ณ '+tcStamp(S.at);$('xpErr').hidden=false;});
+    return;
+  }
+  var stale=xpList().filter(function(k){return Date.now()-(S.lastFetch[k]||0)>XP_STALE;});
   if(!stale.length||S.busy){XP.loading=false;xpReady(true);return;}
   XP.loading=true;xpReady(false);$('xpErr').hidden=true;
   var seq=S.saveSeq;
