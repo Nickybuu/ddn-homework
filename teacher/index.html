@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- เว็บครู: เช็คงานและมอบหมายงาน · สร้างจากโค้ด Apps Script รุ่น 42 (ตรึงส่วนหัว · คลิกเร็วไม่ขึ้นแถบคลุมข้อความ · เปิดทันทีจากข้อมูลในเครื่อง · ปุ่ม PDF) · แก้ได้เฉพาะบรรทัด API_URL -->
+<!-- เว็บครู: เช็คงานและมอบหมายงาน · สร้างจากโค้ด Apps Script รุ่น 43 (รายงานค้างส่งแสดงงานจากคำอธิบาย/รูป · ตรึงส่วนหัว · คลิกเร็วไม่ขึ้นแถบคลุมข้อความ · เปิดทันทีจากข้อมูลในเครื่อง · ปุ่ม PDF) · แก้ได้เฉพาะบรรทัด API_URL -->
 <html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="apple-touch-icon" href="../icon.png"><link rel="icon" type="image/png" href="../icon.png"><meta name="apple-mobile-web-app-title" content="เช็คงาน">
 <title>ระบบเช็คงานและมอบหมายงาน</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -931,6 +931,14 @@ function xpFresh(){
 // คำนวณรายงานของ 1 ห้อง — นับแบบเดียวกับชีต: ค้างส่ง = ค + ล · ลา/ขาด = ล + ลส + ลม · นับเฉพาะคาบที่ถึงวันนี้แล้ว
 function xpDate(s){return (s.wd?s.wd+' ':'')+isoLab(s.date);}
 function xpCut(t,n){t=String(t).replace(/\s+/g,' ').trim();return t.length>n?t.slice(0,n-1)+'…':t;}
+// รุ่น 43: ชื่องานในรายงาน = ชื่องานแถว 2 + คำอธิบายในรายละเอียดงาน · มีแต่รูป = บอกให้ดูรูปในเว็บตรวจงาน
+function xpWork(s){
+  var n=String(s.name||'').replace(/\s+/g,' ').trim(),d=s.det&&s.det.desc?String(s.det.desc).replace(/\s+/g,' ').trim():'';
+  var a=[];if(n)a.push(n);if(d&&d!==n&&n.indexOf(d)<0)a.push(d);
+  if(a.length)return xpCut(a.join(' – '),70);
+  if(s.det&&s.det.imgs&&s.det.imgs.length)return 'รูป (ดูในเว็บตรวจงาน)';
+  return '';
+}
 function xpModel(t,kind,from,to,everyone){
   var K=XK[kind],td=xpToday(),idx=[];
   t.sessions.forEach(function(s,j){var ym=s.date.slice(0,7);if(ym<from||ym>to||s.date>td)return;if(kind==='owe'&&s.noWork)return;idx.push(j);});
@@ -944,7 +952,7 @@ function xpModel(t,kind,from,to,everyone){
     idx.forEach(function(j){
       var v=val(i,j);if(K.bad.indexOf(v)<0)return;
       var s=t.sessions[j],x=xpDate(s)+(dup[s.date]?' · คาบ '+s.p:'');   // ใส่คาบเฉพาะวันที่มี 2 คาบ
-      if(kind==='owe'){if(s.name)x+=' · '+xpCut(s.name,45);if(v==='ล')x+=' (ลา/ขาด)';}
+      if(kind==='owe'){var wn=xpWork(s);if(wn)x+=' · '+wn;if(v==='ล')x+=' (ลา/ขาด)';}
       items.push(x);
     });
     if(items.length||everyone)rows.push({no:st.no,name:(st.pre+st.first+' '+st.last).trim(),n:items.length,items:items});
